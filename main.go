@@ -2,12 +2,17 @@ package main
 
 import (
 	"fmt"
-	"web-scraper/headless"
-	"web-scraper/screenshoter"
+
+	"github.com/amikus123/go-web-scraper/headless"
+	"github.com/amikus123/go-web-scraper/screenshoter"
 )
 
 func main() {
-	scraper := headless.Scraper{Url: "https://www.fronda.pl/", Screenshoter: screenshoter.Screenshoter{}}
+	scraper := headless.Scraper{
+		Url:          "https://www.fronda.pl/",
+		Screenshoter: screenshoter.Screenshoter{},
+		Selectors:    headless.FrondaSelectors,
+	}
 	scraper.Scrape()
 	fmt.Println("end")
 }
