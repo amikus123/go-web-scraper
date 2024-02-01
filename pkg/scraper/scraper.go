@@ -3,6 +3,7 @@ package scraper
 import (
 	"context"
 	"log"
+	"strings"
 
 	"github.com/amikus123/go-web-scraper/db"
 	"github.com/amikus123/go-web-scraper/pkg/screenshoter"
@@ -14,8 +15,7 @@ import (
 type Scraper struct {
 	ctx          context.Context
 	Screenshoter screenshoter.ScreenshoterBehaviour
-	// config
-	Config ScraperConfig
+	Config       ScraperConfig
 }
 
 type ScrapedData struct {
@@ -67,11 +67,15 @@ func (s *Scraper) scrapeHeadings() *[]db.NewsItem {
 	for _, node := range nodes {
 
 		chromedp.Run(s.ctx,
-			chromedp.AttributeValue(selectors.HrefSelector, "href", &title, nil, chromedp.ByQuery, chromedp.FromNode(node)),
+			chromedp.AttributeValue(selectors.HrefSelector, "href", &href, nil, chromedp.ByQuery, chromedp.FromNode(node)),
 			chromedp.AttributeValue(selectors.ImgSelector, "src", &imageSrc, nil, chromedp.ByQuery, chromedp.FromNode(node)),
-			chromedp.Text(selectors.TextSelector, &href, chromedp.ByQuery, chromedp.FromNode(node)),
+			chromedp.Text(selectors.TextSelector, &title, chromedp.ByQuery, chromedp.FromNode(node)),
 		)
 		newsItem := db.NewsItem{}
+
+		if strings.HasPrefix(href, "/") {
+			href = s.Config.Url + href
+		}
 
 		newsItem.Text = title
 		newsItem.Href = href

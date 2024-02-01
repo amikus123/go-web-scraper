@@ -44,7 +44,7 @@ func (s *SourceRepository) GetSourcesToScrape() ([]Source, error) {
 	FROM source LEFT JOIN selector
 	ON source.id = selector.source_id
 	WHERE last_scrape_at IS NULL 
-	OR last_scrape_at <= DATE_SUB(NOW(), INTERVAL 23 HOUR);`
+	OR last_scrape_at > DATE_SUB(NOW(), INTERVAL 23 HOUR);`
 
 	rows, err := db.Query(sqlStatement)
 

@@ -25,8 +25,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 	for _, src := range srcs {
+
 		scraper := scraper.Scraper{
 			Screenshoter: screenshoter.Screenshoter{},
 			Config: scraper.ScraperConfig{
