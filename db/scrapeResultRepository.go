@@ -60,7 +60,7 @@ func (*ScrapeResultRepository) Get(scrapeResultId int64) (*ScrapeResult, error) 
 
 func (*ScrapeResultRepository) GetWithNewsItems(scrapeResultID int64) ([]ScrapeResult, error) {
 
-	rows, err := db.Query("SELECT scrape_result.id, scrape_result.screenshot, scrape_result.source_id, news_item.id, news_item.text,  news_item.href, news_item.img FROM scrape_result LEFT JOIN news_item ON scrape_result.id = news_item.scrape_result_id WHERE scrape_result.id=?", scrapeResultID)
+	rows, err := db.Query("SELECT scrape_result.id, scrape_result.screenshot, scrape_result.source_id, news_item.id, news_item.text,  news_item.href, news_item.img FROM scrape_result LEFT JOIN news_item ON scrape_result.id = news_item.scrape_result_id WHERE scrape_result.id=?", 10)
 
 	if err != nil {
 		return nil, fmt.Errorf("addAlbum: %v", err)
@@ -70,10 +70,8 @@ func (*ScrapeResultRepository) GetWithNewsItems(scrapeResultID int64) ([]ScrapeR
 	var scrResultsMap = make(map[int64]*ScrapeResult)
 
 	for rows.Next() {
-		var scrapedResultID, newsItemID int64
+		var scrapedResultID, newsItemID, sourceID int64
 		var text, screenshot, href, img string
-		var sourceID sql.NullInt64
-		fmt.Println()
 		if err := rows.Scan(&scrapedResultID, &screenshot, &sourceID, &newsItemID, &text, &href, &img); err != nil {
 			return nil, err
 		}
@@ -82,7 +80,7 @@ func (*ScrapeResultRepository) GetWithNewsItems(scrapeResultID int64) ([]ScrapeR
 		if !exists {
 			scrResult = &ScrapeResult{
 				ID:         scrapedResultID,
-				SourceID:   1,
+				SourceID:   sourceID,
 				Screenshot: screenshot,
 				Items:      make([]NewsItem, 0),
 			}

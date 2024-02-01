@@ -18,7 +18,7 @@ func main() {
 	// newsItemRep := db.NewsItemRepository{DB: DB}
 	scrResRep := db.ScrapeResultRepository{DB: DB}
 
-	res, err := scrResRep.GetWithNewsItems(1)
+	res, err := scrResRep.GetWithNewsItems(10)
 
 	if err != nil {
 		panic(err)
