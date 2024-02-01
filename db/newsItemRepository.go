@@ -3,31 +3,47 @@ package db
 import (
 	"database/sql"
 	"fmt"
-
-	"github.com/amikus123/go-web-scraper/pkg/scraper"
+	"strings"
 )
 
 type NewsItem struct {
-	ID         int64
-	Text       string
-	Href       string
-	Screenshot string
+	ID             int64
+	Text           string
+	Href           string
+	Img            string
+	ScrapeResultID int64
 }
 
 type NewsItemRepository struct {
 	DB *sql.DB
 }
 
-func (*NewsItemRepository) Save(data *scraper.ScrapedData) (int64, error) {
+func (*NewsItemRepository) Save(data []NewsItem, scrapeResultID int64) error {
 
-	result, err := db.Exec("INSERT INTO scrape_result (source_id, screenshot) VALUES (?, ?)", data.SourceID, data.Screenshot)
+	sqlStr := "INSERT INTO news_item (scrape_result_id, text, href, img) VALUES"
+	vals := []interface{}{}
+
+	for _, row := range data {
+		sqlStr += "(?, ?, ?, ?),"
+		vals = append(vals, scrapeResultID, row.Text, row.Href, row.Img)
+	}
+	sqlStr = strings.TrimSuffix(sqlStr, ",")
+	// prepare the statement
+
+	fmt.Println(sqlStr)
+	stmt, err := db.Prepare(sqlStr)
 
 	if err != nil {
-		return 0, fmt.Errorf("addAlbum: %v", err)
+		panic(err)
 	}
-	id, err := result.LastInsertId()
+	fmt.Println(stmt)
+	fmt.Println(scrapeResultID)
+	// format all vals at once
+	_, err = stmt.Exec(vals...)
+
 	if err != nil {
-		return 0, fmt.Errorf("addAlbum: %v", err)
+		return fmt.Errorf("addAlbum: %v", err)
 	}
-	return id, nil
+
+	return nil
 }

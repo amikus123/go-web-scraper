@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 )
 
@@ -23,7 +22,7 @@ func (*SourceRepository) Get() ([]Source, error) {
 
 	rows, err := db.Query("SELECT source.id, url, name, selector.id, main_selector,  text_selector, href_selector, img_selector FROM source LEFT JOIN selector ON source.id = selector.source_id ")
 	if err != nil {
-		return nil, fmt.Errorf("addAlbum: %v", err)
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -65,6 +64,5 @@ func (*SourceRepository) Get() ([]Source, error) {
 	for _, val := range sourceMap {
 		sources = append(sources, *val)
 	}
-	fmt.Println(sources, "11")
 	return sources, nil
 }

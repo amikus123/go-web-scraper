@@ -1,5 +1,7 @@
 package scraper
 
+import "github.com/amikus123/go-web-scraper/db"
+
 type ScraperSelectors struct {
 	Main string
 	Href string
@@ -9,14 +11,5 @@ type ScraperSelectors struct {
 type ScraperConfig struct {
 	SourceID  int64
 	Url       string
-	Selectors *ScraperSelectors
-}
-
-var FrondaConfig = ScraperConfig{
-	SourceID: 1,
-	Url:      "https://www.fronda.pl/",
-	Selectors: &ScraperSelectors{Main: ".itemBox",
-		Href: "a",
-		Img:  "img",
-		Text: ".itemBox-title"},
+	Selectors []db.Selector
 }

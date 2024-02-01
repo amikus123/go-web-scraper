@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/amikus123/go-web-scraper/db"
 	"github.com/amikus123/go-web-scraper/pkg/screenshoter"
 
 	"github.com/chromedp/cdproto/cdp"
@@ -17,10 +18,16 @@ type Scraper struct {
 	Config ScraperConfig
 }
 
+type ScrapedData struct {
+	SourceID   int64
+	Items      *[]db.NewsItem
+	Screenshot string
+}
+
 type ScraperBehaviour interface {
 	Scrape()
 	takeScreenshot()
-	scrapeHeadings() []ScrapedNewsItem
+	scrapeHeadings() []db.NewsItem
 	init()
 }
 
@@ -43,32 +50,32 @@ func (s *Scraper) takeScreenshot() *[]byte {
 	return &buf
 }
 
-func (s *Scraper) scrapeHeadings() *[]ScrapedNewsItem {
+func (s *Scraper) scrapeHeadings() *[]db.NewsItem {
 
-	var res []ScrapedNewsItem
+	var res []db.NewsItem
 
 	// navigate to the target web page and select the HTML elements of interest
 	var nodes []*cdp.Node
-	selectors := s.Config.Selectors
+	selectors := s.Config.Selectors[0]
 
 	chromedp.Run(s.ctx,
 		chromedp.Navigate(s.Config.Url),
-		chromedp.Nodes(selectors.Main, &nodes, chromedp.ByQueryAll),
+		chromedp.Nodes(selectors.MainSelector, &nodes, chromedp.ByQueryAll),
 	)
 
 	var title, imageSrc, href string
 	for _, node := range nodes {
 
 		chromedp.Run(s.ctx,
-			chromedp.AttributeValue(selectors.Href, "href", &title, nil, chromedp.ByQuery, chromedp.FromNode(node)),
-			chromedp.AttributeValue(selectors.Img, "src", &imageSrc, nil, chromedp.ByQuery, chromedp.FromNode(node)),
-			chromedp.Text(selectors.Text, &href, chromedp.ByQuery, chromedp.FromNode(node)),
+			chromedp.AttributeValue(selectors.HrefSelector, "href", &title, nil, chromedp.ByQuery, chromedp.FromNode(node)),
+			chromedp.AttributeValue(selectors.ImgSelector, "src", &imageSrc, nil, chromedp.ByQuery, chromedp.FromNode(node)),
+			chromedp.Text(selectors.TextSelector, &href, chromedp.ByQuery, chromedp.FromNode(node)),
 		)
-		newsItem := ScrapedNewsItem{}
+		newsItem := db.NewsItem{}
 
-		newsItem.Title = title
+		newsItem.Text = title
 		newsItem.Href = href
-		newsItem.ImageSrc = imageSrc
+		newsItem.Img = imageSrc
 
 		res = append(res, newsItem)
 	}

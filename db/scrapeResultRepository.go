@@ -3,8 +3,6 @@ package db
 import (
 	"database/sql"
 	"fmt"
-
-	"github.com/amikus123/go-web-scraper/pkg/scraper"
 )
 
 type ScrapeResult struct {
@@ -17,22 +15,14 @@ type ScrapeResultRepository struct {
 	DB *sql.DB
 }
 
-func (*ScrapeResultRepository) Save(data *scraper.ScrapedData) (int64, error) {
+func (*ScrapeResultRepository) Save(sourceId int64, screenshotUrl string) (int64, error) {
 
-	result, err := db.Exec("INSERT INTO scrape_result (source_id, screenshot) VALUES (?, ?)", data.SourceID, data.Screenshot)
+	result, err := db.Exec("INSERT INTO scrape_result (source_id, screenshot) VALUES (?, ?)", sourceId, screenshotUrl)
 
 	if err != nil {
 		return 0, fmt.Errorf("addAlbum: %v", err)
 	}
 	id, err := result.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("addAlbum: %v", err)
-	}
-	return id, nil
+
+	return id, err
 }
-
-// Source
-
-// ScrapeResult
-
-// News item
