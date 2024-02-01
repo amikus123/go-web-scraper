@@ -2,7 +2,6 @@ package screenshoter
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/chromedp/chromedp"
 )
@@ -29,8 +28,6 @@ func (s Screenshoter) TakeScreenshot(ctx context.Context, url string) ([]byte, e
 // Note: chromedp.FullScreenshot overrides the device's emulation settings. Use
 // device.Reset to reset the emulation and viewport settings.
 func fullScreenshot(urlstr string, quality int, res *[]byte) chromedp.Tasks {
-	fmt.Println("aaaaaaaaaaaaa")
-
 	return chromedp.Tasks{
 		chromedp.Navigate(urlstr),
 		chromedp.FullScreenshot(res, quality),

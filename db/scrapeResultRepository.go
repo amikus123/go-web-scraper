@@ -18,7 +18,11 @@ type ScrapeResultRepository struct {
 
 func (*ScrapeResultRepository) Save(sourceId int64, screenshotUrl string) (int64, error) {
 
-	result, err := db.Exec("INSERT INTO scrape_result (source_id, screenshot) VALUES (?, ?)", sourceId, screenshotUrl)
+	sqlStatement := `
+	INSERT INTO scrape_result
+	(source_id, screenshot) VALUES (?, ?)`
+
+	result, err := db.Exec(sqlStatement, sourceId, screenshotUrl)
 
 	if err != nil {
 		return 0, fmt.Errorf("addAlbum: %v", err)
@@ -28,7 +32,7 @@ func (*ScrapeResultRepository) Save(sourceId int64, screenshotUrl string) (int64
 	return id, err
 }
 
-func (*ScrapeResultRepository) Get(scrapeResultId int64) (*ScrapeResult, error) {
+func (*ScrapeResultRepository) GetById(scrapeResultId int64) (*ScrapeResult, error) {
 
 	rows, err := db.Query("SELECT id, source_id, screenshot FROM scrape_result WHERE id=?", scrapeResultId)
 
@@ -58,25 +62,49 @@ func (*ScrapeResultRepository) Get(scrapeResultId int64) (*ScrapeResult, error) 
 	return &res, nil
 }
 
-func (*ScrapeResultRepository) GetWithNewsItems(scrapeResultID int64) ([]ScrapeResult, error) {
+func (s *ScrapeResultRepository) GetByIdWithNewsItems(scrapeResultID int64) ([]ScrapeResult, error) {
 
-	rows, err := db.Query("SELECT scrape_result.id, scrape_result.screenshot, scrape_result.source_id, news_item.id, news_item.text,  news_item.href, news_item.img FROM scrape_result LEFT JOIN news_item ON scrape_result.id = news_item.scrape_result_id WHERE scrape_result.id=?", 10)
+	rows, err := db.Query("SELECT scrape_result.id, scrape_result.screenshot, scrape_result.source_id, news_item.id, news_item.text,  news_item.href, news_item.img FROM scrape_result LEFT JOIN news_item ON scrape_result.id = news_item.scrape_result_id WHERE scrape_result.id=?", scrapeResultID)
 
 	if err != nil {
 		return nil, fmt.Errorf("addAlbum: %v", err)
 	}
 	defer rows.Close()
 
+	items, err := s.groupRowsWithNewsItems(rows)
+
+	return items, err
+}
+
+func (s *ScrapeResultRepository) GetBySourceIdWithNewsItems(sourceID int64) ([]ScrapeResult, error) {
+
+	rows, err := db.Query("SELECT scrape_result.id, scrape_result.screenshot, scrape_result.source_id, news_item.id, news_item.text,  news_item.href, news_item.img FROM scrape_result LEFT JOIN news_item ON scrape_result.id = news_item.scrape_result_id WHERE scrape_result.source_id=?", sourceID)
+
+	if err != nil {
+		return nil, fmt.Errorf("addAlbum: %v", err)
+	}
+	defer rows.Close()
+
+	items, err := s.groupRowsWithNewsItems(rows)
+
+	return items, err
+}
+
+func (*ScrapeResultRepository) groupRowsWithNewsItems(rows *sql.Rows) ([]ScrapeResult, error) {
 	var scrResultsMap = make(map[int64]*ScrapeResult)
 
 	for rows.Next() {
-		var scrapedResultID, newsItemID, sourceID int64
-		var text, screenshot, href, img string
+		var scrapedResultID, sourceID int64
+		var screenshot string
+		var newsItemID sql.NullInt64
+		var text, href, img sql.NullString
+
 		if err := rows.Scan(&scrapedResultID, &screenshot, &sourceID, &newsItemID, &text, &href, &img); err != nil {
 			return nil, err
 		}
 		scrResult, exists := scrResultsMap[scrapedResultID]
 
+		// TODO handle null values
 		if !exists {
 			scrResult = &ScrapeResult{
 				ID:         scrapedResultID,
@@ -88,16 +116,16 @@ func (*ScrapeResultRepository) GetWithNewsItems(scrapeResultID int64) ([]ScrapeR
 
 		}
 		newsItem := NewsItem{
-			ID:             newsItemID,
-			Text:           text,
-			Href:           href,
-			Img:            img,
+			ID:             newsItemID.Int64,
+			Text:           text.String,
+			Href:           href.String,
+			Img:            img.String,
 			ScrapeResultID: scrapedResultID,
 		}
 		scrResult.Items = append(scrResult.Items, newsItem)
 	}
 
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 

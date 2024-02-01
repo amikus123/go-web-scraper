@@ -20,7 +20,11 @@ type SelectorRepository struct {
 
 func (*SelectorRepository) Save() (int64, error) {
 
-	result, err := db.Exec("INSERT INTO scrape_result (source_id, screenshot) VALUES (?, ?)", 1, 1)
+	sqlStatement := `
+	INSERT INTO scrape_result 
+	(source_id, screenshot) VALUES (?, ?)`
+
+	result, err := db.Exec(sqlStatement, 1, 1)
 
 	if err != nil {
 		return 0, fmt.Errorf("addAlbum: %v", err)

@@ -6,26 +6,57 @@ import (
 )
 
 type Source struct {
-	ID        int64
-	Url       string
-	Name      string
-	Selectors []Selector
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID           int64
+	Url          string
+	Name         string
+	Selectors    []Selector
+	LastScrapeAt time.Time
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 type SourceRepository struct {
 	DB *sql.DB
 }
 
-func (*SourceRepository) Get() ([]Source, error) {
+func (s *SourceRepository) Get() ([]Source, error) {
 
-	rows, err := db.Query("SELECT source.id, url, name, selector.id, main_selector,  text_selector, href_selector, img_selector FROM source LEFT JOIN selector ON source.id = selector.source_id ")
+	sqlStatement := `
+	SELECT source.id, url, name, selector.id, main_selector,
+	text_selector, href_selector, img_selector
+	FROM source LEFT JOIN selector
+	ON source.id = selector.source_id;`
+
+	rows, err := db.Query(sqlStatement)
+
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
+	return s.groupSourcesWithSelectors(rows)
+}
+func (s *SourceRepository) GetSourcesToScrape() ([]Source, error) {
+
+	sqlStatement := `
+	SELECT source.id, url, name, selector.id, main_selector,
+	text_selector, href_selector, img_selector
+	FROM source LEFT JOIN selector
+	ON source.id = selector.source_id
+	WHERE last_scrape_at IS NULL 
+	OR last_scrape_at <= DATE_SUB(NOW(), INTERVAL 23 HOUR);`
+
+	rows, err := db.Query(sqlStatement)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	return s.groupSourcesWithSelectors(rows)
+}
+
+func (*SourceRepository) groupSourcesWithSelectors(rows *sql.Rows) ([]Source, error) {
 	var sourceMap = make(map[int64]*Source)
 	for rows.Next() {
 		var sourceID, selectorID int64
@@ -56,7 +87,7 @@ func (*SourceRepository) Get() ([]Source, error) {
 		source.Selectors = append(source.Selectors, selector)
 	}
 
-	if err = rows.Err(); err != nil {
+	if err := rows.Err(); err != nil {
 		return nil, err
 	}
 
@@ -66,4 +97,14 @@ func (*SourceRepository) Get() ([]Source, error) {
 		sources = append(sources, *val)
 	}
 	return sources, nil
+}
+
+func (*SourceRepository) Update(s Source) error {
+	sqlStatement := `
+	UPDATE source
+	SET name = ?, url = ?, last_scrape_at = ?
+	WHERE id = ?;`
+	_, err := db.Exec(sqlStatement, s.Name, s.Url, s.LastScrapeAt, s.ID)
+
+	return err
 }

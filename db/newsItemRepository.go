@@ -30,14 +30,11 @@ func (*NewsItemRepository) Save(data []NewsItem, scrapeResultID int64) error {
 	sqlStr = strings.TrimSuffix(sqlStr, ",")
 	// prepare the statement
 
-	fmt.Println(sqlStr)
 	stmt, err := db.Prepare(sqlStr)
 
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(stmt)
-	fmt.Println(scrapeResultID)
 	// format all vals at once
 	_, err = stmt.Exec(vals...)
 

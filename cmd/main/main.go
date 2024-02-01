@@ -1,9 +1,11 @@
 package main
 
 import (
-	"fmt"
+	"time"
 
 	"github.com/amikus123/go-web-scraper/db"
+	"github.com/amikus123/go-web-scraper/pkg/scraper"
+	"github.com/amikus123/go-web-scraper/pkg/screenshoter"
 	"github.com/joho/godotenv"
 )
 
@@ -14,47 +16,45 @@ func main() {
 
 	defer DB.Close()
 
-	// srcRep := db.SourceRepository{DB: DB}
-	// newsItemRep := db.NewsItemRepository{DB: DB}
+	srcRep := db.SourceRepository{DB: DB}
 	scrResRep := db.ScrapeResultRepository{DB: DB}
+	newsItemRep := db.NewsItemRepository{DB: DB}
 
-	res, err := scrResRep.GetWithNewsItems(10)
+	srcs, err := srcRep.GetSourcesToScrape()
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(res)
-	// srcs, err := srcRep.Get()
+	for _, src := range srcs {
+		scraper := scraper.Scraper{
+			Screenshoter: screenshoter.Screenshoter{},
+			Config: scraper.ScraperConfig{
+				SourceID:  src.ID,
+				Url:       src.Url,
+				Selectors: src.Selectors,
+			},
+		}
+		scrapedData := scraper.Scrape()
 
-	// if err != nil {
-	// 	panic(err)
-	// }
+		id, err := scrResRep.Save(scrapedData.SourceID, "")
 
-	// for _, src := range srcs {
-	// 	scraper := scraper.Scraper{
-	// 		Screenshoter: screenshoter.Screenshoter{},
-	// 		Config: scraper.ScraperConfig{
-	// 			SourceID:  src.ID,
-	// 			Url:       src.Url,
-	// 			Selectors: src.Selectors,
-	// 		},
-	// 	}
-	// 	scrapedData := scraper.Scrape()
+		if err != nil {
+			panic(err)
+		}
 
-	// 	id, err := scrResRep.Save(scrapedData.SourceID, "")
+		err = newsItemRep.Save(*scrapedData.Items, id)
 
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
+		if err != nil {
+			panic(err)
+		}
+		src.LastScrapeAt = time.Now()
 
-	// 	err = newsItemRep.Save(*scrapedData.Items, id)
+		err = srcRep.Update(src)
 
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
+		if err != nil {
+			panic(err)
+		}
+	}
 
-	// }
-
-	fmt.Println("end")
 }
