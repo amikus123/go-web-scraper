@@ -27,13 +27,12 @@ func (*SourceRepository) Get() ([]Source, error) {
 	defer rows.Close()
 
 	var sourceMap = make(map[int64]*Source)
-	var sources []Source
 	for rows.Next() {
 		var sourceID, selectorID int64
 		var sourceName, sourceUrl, mainSelector, imgSelector, hrefSelector, textSelector string
 
 		if err := rows.Scan(&sourceID, &sourceUrl, &sourceName, &selectorID, &mainSelector, &textSelector, &hrefSelector, &imgSelector); err != nil {
-			return sources, err
+			return nil, err
 		}
 		source, exists := sourceMap[sourceID]
 		if !exists {
@@ -58,8 +57,10 @@ func (*SourceRepository) Get() ([]Source, error) {
 	}
 
 	if err = rows.Err(); err != nil {
-		return sources, err
+		return nil, err
 	}
+
+	var sources []Source
 
 	for _, val := range sourceMap {
 		sources = append(sources, *val)
