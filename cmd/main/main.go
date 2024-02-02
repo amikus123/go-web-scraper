@@ -1,16 +1,25 @@
 package main
 
 import (
+	"log"
+	"net/http"
 	"time"
 
+	"github.com/amikus123/go-web-scraper/api"
 	"github.com/amikus123/go-web-scraper/db"
 	"github.com/amikus123/go-web-scraper/pkg/scraper"
 	"github.com/amikus123/go-web-scraper/pkg/screenshoter"
+	"github.com/amikus123/go-web-scraper/web"
 	"github.com/joho/godotenv"
 )
 
 func main() {
 	godotenv.Load(".env")
+
+	web.StartWebServer()
+	api.StartAPIServer()
+
+	log.Fatal(http.ListenAndServe(":8080", nil))
 
 	DB := db.Connect()
 
