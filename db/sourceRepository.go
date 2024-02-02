@@ -22,8 +22,47 @@ type SourceRepository struct {
 func (s *SourceRepository) Get() ([]Source, error) {
 
 	sqlStatement := `
-	SELECT source.id, url, name, selector.id, main_selector,
-	text_selector, href_selector, img_selector
+	SELECT source.id, url, name
+	FROM source;`
+
+	rows, err := db.Query(sqlStatement)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var sources []Source
+
+	for rows.Next() {
+		var sourceID int64
+		var sourceName, sourceUrl string
+
+		if err := rows.Scan(&sourceID, &sourceUrl, &sourceName); err != nil {
+			return nil, err
+		}
+		source := Source{
+			ID:        sourceID,
+			Name:      sourceName,
+			Url:       sourceUrl,
+			Selectors: make([]Selector, 0),
+		}
+		sources = append(sources, source)
+
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return sources, nil
+}
+
+func (s *SourceRepository) GetWithSelectors() ([]Source, error) {
+
+	sqlStatement := `
+	SELECT source.id, url, name, selector.id, main,
+	text, href, img
 	FROM source LEFT JOIN selector
 	ON source.id = selector.source_id;`
 
@@ -36,11 +75,37 @@ func (s *SourceRepository) Get() ([]Source, error) {
 
 	return s.groupSourcesWithSelectors(rows)
 }
-func (s *SourceRepository) GetSourcesToScrape() ([]Source, error) {
+
+func (s *SourceRepository) GetWithSelectorsByID(id int64) (*Source, error) {
 
 	sqlStatement := `
-	SELECT source.id, url, name, selector.id, main_selector,
-	text_selector, href_selector, img_selector
+	SELECT source.id, url, name, selector.id, main,
+	text, href, img
+	FROM source LEFT JOIN selector
+	ON source.id = selector.source_id
+	WHERE source.id = ?;`
+
+	rows, err := db.Query(sqlStatement, id)
+
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	sources, err := s.groupSourcesWithSelectors(rows)
+
+	if err != nil {
+		return nil, err
+	}
+	return &sources[0], nil
+
+}
+
+func (s *SourceRepository) GetRecentlyNotUsed() ([]Source, error) {
+
+	sqlStatement := `
+	SELECT source.id, url, name, selector.id, main,
+	text, href, img
 	FROM source LEFT JOIN selector
 	ON source.id = selector.source_id
 	WHERE last_scrape_at IS NULL 
@@ -77,12 +142,12 @@ func (*SourceRepository) groupSourcesWithSelectors(rows *sql.Rows) ([]Source, er
 
 		}
 		selector := Selector{
-			ID:           selectorID,
-			SourceID:     sourceID,
-			MainSelector: mainSelector,
-			TextSelector: textSelector,
-			ImgSelector:  imgSelector,
-			HrefSelector: hrefSelector,
+			ID:       selectorID,
+			SourceID: sourceID,
+			Main:     mainSelector,
+			Text:     textSelector,
+			Img:      imgSelector,
+			Href:     hrefSelector,
 		}
 		source.Selectors = append(source.Selectors, selector)
 	}

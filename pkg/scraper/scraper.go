@@ -60,16 +60,16 @@ func (s *Scraper) scrapeHeadings() *[]db.NewsItem {
 
 	chromedp.Run(s.ctx,
 		chromedp.Navigate(s.Config.Url),
-		chromedp.Nodes(selectors.MainSelector, &nodes, chromedp.ByQueryAll),
+		chromedp.Nodes(selectors.Main, &nodes, chromedp.ByQueryAll),
 	)
 
 	var title, imageSrc, href string
 	for _, node := range nodes {
 
 		chromedp.Run(s.ctx,
-			chromedp.AttributeValue(selectors.HrefSelector, "href", &href, nil, chromedp.ByQuery, chromedp.FromNode(node)),
-			chromedp.AttributeValue(selectors.ImgSelector, "src", &imageSrc, nil, chromedp.ByQuery, chromedp.FromNode(node)),
-			chromedp.Text(selectors.TextSelector, &title, chromedp.ByQuery, chromedp.FromNode(node)),
+			chromedp.AttributeValue(selectors.Href, "href", &href, nil, chromedp.ByQuery, chromedp.FromNode(node)),
+			chromedp.AttributeValue(selectors.Img, "src", &imageSrc, nil, chromedp.ByQuery, chromedp.FromNode(node)),
+			chromedp.Text(selectors.Text, &title, chromedp.ByQuery, chromedp.FromNode(node)),
 		)
 		newsItem := db.NewsItem{}
 

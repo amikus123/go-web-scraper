@@ -1,58 +1,136 @@
 package web
 
 import (
+	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"text/template"
 	"time"
+
+	"github.com/amikus123/go-web-scraper/db"
 )
 
-type Film struct {
-	Title    string
-	Director string
-}
-
-func StartWebServer() {
+func getTemplateURL(template string) string {
 
 	wd, err := os.Getwd()
 	if err != nil {
 		log.Fatal(err)
 	}
-	wd = wd + "/web/index.html"
-	// handler function #1 - returns the index.html template, with film data
-	h1 := func(w http.ResponseWriter, r *http.Request) {
-		tmpl := template.Must(template.ParseFiles(wd))
+	return wd + "/web/" + template + ".html"
+}
 
-		// handle incorrect routes
-		if r.URL.Path != "/" {
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-		}
+func StartWebServer(DB *sql.DB) {
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		handleIndex(w, r, DB)
+	})
 
-		films := map[string][]Film{
-			"Films": {
-				{Title: "The Godfather", Director: "Francis Ford Coppola"},
-				{Title: "Blade Runner", Director: "Ridley Scott"},
-				{Title: "The Thing", Director: "John Carpenter"},
-			},
-		}
-		tmpl.Execute(w, films)
+	http.HandleFunc("/source", func(w http.ResponseWriter, r *http.Request) {
+		handleSource(w, r, DB)
+	})
+
+	fmt.Println("started web server")
+
+}
+
+func handleIndex(w http.ResponseWriter, r *http.Request, DB *sql.DB) {
+	srcRep := db.SourceRepository{DB: DB}
+
+	tmplURL := getTemplateURL("index")
+	tmpl := template.Must(template.ParseFiles(tmplURL))
+
+	// handle incorrect routes
+	if r.URL.Path != "/" {
+		fmt.Println("redirect", r.URL)
+		http.Redirect(w, r, "/", http.StatusSeeOther)
 	}
 
-	// handler function #2 - returns the template block with the newly added film, as an HTMX response
-	h2 := func(w http.ResponseWriter, r *http.Request) {
+	sources, err := srcRep.Get()
+
+	if err != nil {
+		panic(err)
+	}
+
+	tmplMap := map[string][]db.Source{
+		"Sources": sources,
+	}
+
+	tmpl.Execute(w, tmplMap)
+
+}
+
+type SourcePageData struct {
+	Source   *db.Source
+	AddedNew bool
+}
+
+func handleSource(w http.ResponseWriter, r *http.Request, DB *sql.DB) {
+	srcRep := db.SourceRepository{DB: DB}
+	selRep := db.SelectorRepository{DB: DB}
+
+	tmplURL := getTemplateURL("source")
+	tmpl := template.Must(template.ParseFiles(tmplURL))
+
+	query := r.URL.Query()
+
+	paramSourceID := query.Get("id")
+
+	sourceID, err := strconv.ParseInt(paramSourceID, 10, 64)
+
+	if err != nil {
+		panic(err)
+	}
+
+	// handle POSt
+	if r.Method == http.MethodPost {
 		time.Sleep(1 * time.Second)
-		title := r.PostFormValue("title")
-		director := r.PostFormValue("director")
-		// htmlStr := fmt.Sprintf("<li class='list-group-item bg-primary text-white'>%s - %s</li>", title, director)
-		// tmpl, _ := template.New("t").Parse(htmlStr)
-		tmpl := template.Must(template.ParseFiles("index.html"))
-		tmpl.ExecuteTemplate(w, "film-list-element", Film{Title: title, Director: director})
+		main := r.PostFormValue("selector-main")
+		text := r.PostFormValue("selector-text")
+		img := r.PostFormValue("selector-img")
+		href := r.PostFormValue("selector-href")
+
+		selRep.Save(db.Selector{
+			Main:     main,
+			Text:     text,
+			Img:      img,
+			Href:     href,
+			SourceID: sourceID,
+		})
+
+		source, err := srcRep.GetWithSelectorsByID(sourceID)
+
+		if err != nil {
+			panic(err)
+		}
+
+		tmplMap := SourcePageData{
+			Source:   source,
+			AddedNew: true,
+		}
+
+		tmpl.Execute(w, tmplMap)
+		return
 	}
 
-	// define handlers
-	http.HandleFunc("/", h1)
+	// handle GET
+	if r.Method == http.MethodGet {
+		source, err := srcRep.GetWithSelectorsByID(sourceID)
 
-	http.HandleFunc("/add-film/", h2)
+		if err != nil {
+			panic(err)
+		}
+		tmplMap := SourcePageData{
+			Source:   source,
+			AddedNew: false,
+		}
+
+		tmpl.Execute(w, tmplMap)
+		return
+	}
+	// handle DELETE
+
+	// handle UPDATE
 
 }

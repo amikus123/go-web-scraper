@@ -20,46 +20,70 @@
   <body class="container">
     <div class="row mt-4 g-4">
       <div class="col-8">
-        <h1 class="mb-4">Film List</h1>
-
-        <ul class="list-group fs-5 me-5" id="film-list">
-          {{ range .Sources }} {{ block "film-list-element" .}}
-          <li class="list-group-item bg-primary text-white">
-            <a
-              class="text-reset text-decoration-none"
-              href="/source?id={{.ID}}"
-            >
-              {{ .Name }} - {{ .Url }}
-            </a>
-          </li>
-          {{ end }} {{ end }}
-        </ul>
+        <h1 class="mb-4">Source Page - {{ .Source.Name}}</h1>
       </div>
 
+      <ul class="list-group fs-5 me-5" id="film-list">
+        {{ range .Source.Selectors }} {{ block "film-list-element" .}}
+        <li
+          class="list-group-item bg-primary text-white d-flex justify-content-between align-items-center"
+        >
+          <p>
+            Text: {{ .Text }} <br />
+            Img: {{.Img}} <br />
+            Href: {{.Href}}
+          </p>
+
+          <p>Delete</p>
+        </li>
+        {{ end }} {{ end }}
+      </ul>
+
       <div class="col-4">
-        <h1 class="mb-4">Add Film</h1>
+        <h1 class="mb-4">Add Selector</h1>
 
         <form
-          hx-post="/add-film/"
+          hx-post="/source?id={{.Source.ID}}"
           hx-target="#film-list"
           hx-swap="beforeend"
           hx-indicator="#spinner"
         >
           <div class="mb-2">
-            <label for="film-title">Title</label>
+            <label for="selector-main">Main</label>
             <input
               type="text"
-              name="title"
-              id="film-title"
+              name="selector-main"
+              id="selector-main"
               class="form-control"
             />
           </div>
-          <div class="mb-3">
-            <label for="film-director">Director</label>
+
+          <div class="mb-2">
+            <label for="selector-text">Text</label>
             <input
               type="text"
-              name="director"
-              id="film-director"
+              name="selector-text"
+              id="selector-text"
+              class="form-control"
+            />
+          </div>
+
+          <div class="mb-2">
+            <label for="selector-img">Img</label>
+            <input
+              type="text"
+              name="selector-img"
+              id="selector-img"
+              class="form-control"
+            />
+          </div>
+
+          <div class="mb-2">
+            <label for="selector-main">Href</label>
+            <input
+              type="text"
+              name="selector-href"
+              id="selector-href"
               class="form-control"
             />
           </div>
